@@ -108,6 +108,7 @@
       mS_temp(:, :) = 0.
       M = max_age * n_substeps
       h = dt / n_substeps
+
       call f_verbose(verbose,'...Setting initial conditions...')
       do i=0,max_age-1
         is = i*n_substeps
@@ -294,25 +295,27 @@
       endif
       end subroutine f_verbose
 
-      subroutine lookup(xa, ya, x, y, na, n)
+      subroutine lookup_forwarddifference(xa, ya, x, y, dx, dy, na, n, i)
       implicit none
-      integer, intent(in) ::  na, n
+      integer, intent(in) ::  na, n, i
       real(8), intent(in), dimension(0:na-1) :: xa
       real(8), intent(in), dimension(0:na-1) :: ya
       real(8), intent(in), dimension(0:n-1) :: x
-      real(8), intent(out), dimension(0:n-1) :: y
-      integer :: i, j, i0
+      real(8), intent(in), dimension(0:n-1) :: y
+      real(8), intent(in), dimension(0:n-1) :: dx
+      real(8), intent(out), dimension(0:n-1) :: dy
+      integer :: k, j, k0
       real(8) :: dif, grad
       logical :: foundit
-      i0 = 0
+      k0 = 0
       do j=0,n-1
         if (x(j).le.xa(0)) then
             y(j) = ya(0)
         else
             foundit = .FALSE.
-            do i=i0,na-1
-                if (x(j).lt.xa(i)) then
-                    i0 = i-1
+            do k=k0,na-1
+                if (x(j).lt.xa(k)) then
+                    k0 = k-1
                     foundit = .TRUE.
                     exit
                 endif
@@ -320,9 +323,9 @@
             if (.not. foundit) then
                 y(j) = ya(na-1)
             else
-                dif = x(j) - xa(i0)
-                grad = (ya(i0+1)-ya(i0))/(xa(i0+1)-xa(i0))
-                y(j) = ya(i0) + dif * grad
+                dif = x(j) - xa(k0)
+                grad = (ya(k0+1)-ya(k0))/(xa(k0+1)-xa(k0))
+                y(j) = ya(k0) + dif * grad
             endif
         endif
       enddo
@@ -364,16 +367,16 @@
       real(8), intent(in), dimension(0:timeseries_length-1,0:numflux-1,0:numsol-1) :: alpha_ts
       real(8), intent(in), dimension(0:timeseries_length-1,0:numsol-1) :: k1_ts
       real(8), intent(in), dimension(0:timeseries_length-1,0:numsol-1) :: C_eq_ts
-      real(8), intent(inout), dimension(0:max_age*n_substeps, 0:numflux-1) :: PQcum_temp
-      real(8), intent(inout), dimension(0:max_age*n_substeps) :: STcum_temp
-      real(8), intent(out), dimension(0:max_age*n_substeps-1, 0:numflux-1) :: pQ_temp
-      real(8), intent(in), dimension(0:max_age*n_substeps-1) :: sT_temp
-      real(8), intent(out), dimension(0:max_age*n_substeps-1, 0:numflux-1, 0:numsol-1) :: mQ_temp
-      real(8), intent(out), dimension(0:max_age*n_substeps-1, 0:numsol-1) :: mR_temp
-      real(8), intent(in), dimension(0:max_age*n_substeps-1, 0:numsol-1) :: mS_temp
+      real(8), intent(inout), dimension(0:timeseries_length*n_substeps, 0:numflux-1) :: PQcum_temp
+      real(8), intent(inout), dimension(0:timeseries_length*n_substeps) :: STcum_temp
+      real(8), intent(out), dimension(0:timeseries_length*n_substeps-1, 0:numflux-1) :: pQ_temp
+      real(8), intent(in), dimension(0:timeseries_length*n_substeps-1) :: sT_temp
+      real(8), intent(out), dimension(0:timeseries_length*n_substeps-1, 0:numflux-1, 0:numsol-1) :: mQ_temp
+      real(8), intent(out), dimension(0:timeseries_length*n_substeps-1, 0:numsol-1) :: mR_temp
+      real(8), intent(in), dimension(0:timeseries_length*n_substeps-1, 0:numsol-1) :: mS_temp
       integer M, iq, s
       M = max_age * n_substeps
-      STcum_temp = cumsum(sT_temp, M)
+      N = timeseries_length * n_substeps
       call f_debug(debug, 'sT_temp', sT_temp)
       call f_debug(debug, 'STcum_temp', STcum_temp)
       do s=0,numsol-1
@@ -381,8 +384,7 @@
       enddo
       do iq=0,numflux-1
         call lookup(rSAS_lookup(:,i,iq), P_list, STcum_temp, &
-                 PQcum_temp(:,iq), nP_list, M+1)
-        pQ_temp(:,iq) = diff(PQcum_temp(:,iq), M+1)
+                 sT_temp, pQ_temp(:,iq), nP_list, N, i)
         call f_debug(debug, 'PQcum_temp', PQcum_temp(:,iq))
         call f_debug(debug, 'pQ_temp', pQ_temp(:,iq))
         do s=0,numsol-1
@@ -419,6 +421,7 @@
       real(8), intent(inout), dimension(0:max_age*n_substeps-1, 0:numsol-1) :: mS_prev
       real(8), intent(inout), dimension(0:max_age*n_substeps-1, 0:numsol-1) :: mR_temp
       real(8), intent(in), dimension(0:timeseries_length-1, 0:numsol-1) :: C_J_ts
+      ! This needs to be done here: STcum_temp = cumsum(sT_temp, M)
       M = max_age * n_substeps
       sT_temp = sT_prev
       do iq=0,numflux-1
