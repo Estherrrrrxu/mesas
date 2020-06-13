@@ -11,6 +11,7 @@ from copy import deepcopy
 
 import numpy as np
 from solve import solve
+solve=solve.solve_sas
 
 dtype = np.float64
 
