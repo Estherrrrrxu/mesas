@@ -359,7 +359,6 @@ contains
                 call get_flux(h)
                 call update_aver(1)
 
-                !$acc kernels
                 do c = 0, N - 1
                     jt_s = modulo(c + iT_s, N)
                     jt_substep = modulo(jt_s, n_substeps)
@@ -428,7 +427,6 @@ contains
                         enddo
                     end if
                 enddo
-                !$acc end kernels
                 !call f_debug('sT_end           ', sT_end)
                 !call f_debug('sT_ts(iT, :)     ', sT_ts(iT, :))
                 !call f_debug('pQ_aver0         ', pQ_aver(0,:))
