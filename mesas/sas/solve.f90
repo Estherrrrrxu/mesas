@@ -87,7 +87,7 @@ contains
             timeseries_length_in, numcomponent_total_in, numbreakpt_total_in, &
             sT_ts, pQ_ts, WaterBalance_ts, &
             mT_ts, mQ_ts, mR_ts, C_Q_ts, ds_ts, dm_ts, dC_ts, SoluteBalance_ts)
-        implicit none
+        implicit  none
         !$acc routine
 
         ! Start by declaring and initializing all the variables we will be using
@@ -329,7 +329,6 @@ contains
                 !call f_debug('STcum_bot_start  ',STcum_bot_start)
 
 
-                !$acc kernels
                 do c = 0, N - 1
                     jt_s = modulo(c + iT_s, N)
                     jt_substep = modulo(jt_s, n_substeps)
