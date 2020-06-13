@@ -5,6 +5,10 @@ module solve
             timeseries_length, numcomponent_total, numbreakpt_total
     real(8) :: dt
     logical :: verbose, debug, warning
+    !$acc declare copyin(n_substeps, numflux, numsol, max_age)
+    !$acc declare copyin(timeseries_length, numcomponent_total, numbreakpt_total)
+    !$acc declare copyin(dt)
+    !$acc declare copyin(verbose, debug, warning)
     real(8), dimension(:), allocatable :: J_ts
     real(8), dimension(:, :), allocatable :: Q_ts
     real(8), dimension(:, :), allocatable :: weights_ts
@@ -23,6 +27,10 @@ module solve
     real(8), dimension(:, :), allocatable :: P_old
     integer, dimension(:), allocatable :: breakpt_index_list
     integer, dimension(:), allocatable :: component_index_list
+    !$acc declare copyin(J_ts, Q_ts, weights_ts, SAS_lookup, P_list, C_J_ts, alpha_ts, k1_ts, C_eq_ts, C_old)
+    !$acc declare copyin(sT_init_ts, mT_init_ts, numcomponent_list, numbreakpt_list, dW_ts, P_old)
+    !$acc declare copyin(breakpt_index_list, component_index_list)
+
     real(8), dimension(:), allocatable :: STcum_top_start
     real(8), dimension(:), allocatable :: STcum_bot_start
     real(8), dimension(:), allocatable :: STcum_bot
@@ -59,13 +67,18 @@ module solve
     real(8), dimension(:, :, :), allocatable :: dm_start
     real(8), dimension(:, :, :), allocatable :: dm_temp
     real(8), dimension(:, :, :), allocatable :: dm_end
-    real(8) :: one8, norm
-    real(8) :: dS, dP, dSe, dPe, dSs, dPs
-    real(8) :: h
-    character(len = 128) :: tempdebugstring
-    integer :: iT_substep, iT, jt, iT_s, jt_s, iT_prev, jt_substep
-    integer :: iq, s, M, N, ip, ic, c
-    integer :: carry
+    !$acc declare create(STcum_top_start, STcum_bot_start, STcum_bot, STcum_top, PQcum_bot, PQcum_top)
+    !$acc declare create(leftbreakpt_bot, leftbreakpt_top, pQ_temp)
+    !$acc declare create(pQ_aver, mQ_temp, mQ_aver, mR_temp, mR_aver, fs_temp, fs_aver, fsQ_temp, fsQ_aver)
+    !$acc declare create(fm_temp, fm_aver, fmQ_temp, fmQ_aver, fmR_temp, fmR_aver)
+    !$acc declare create(sT_start, sT_temp, sT_end, mT_start, mT_temp, mT_end, ds_start)
+    !$acc declare create(ds_temp, ds_end, dm_start, dm_temp, dm_end)
+
+    real(8) :: norm, h
+    integer :: N
+    !$acc declare copyin(norm, h, N)
+    integer :: iT, jt, iT_s, jt_s, c
+    !$acc declare create(iT, jt, iT_s, jt_s, c)
 contains
     subroutine RK4(J_ts_in, Q_ts_in, SAS_lookup_in, P_list_in, weights_ts_in, sT_init_ts_in, dt_in, &
             verbose_in, debug_in, warning_in, &
@@ -75,6 +88,7 @@ contains
             sT_ts, pQ_ts, WaterBalance_ts, &
             mT_ts, mQ_ts, mR_ts, C_Q_ts, ds_ts, dm_ts, dC_ts, SoluteBalance_ts)
         implicit none
+        !$acc routine
 
         ! Start by declaring and initializing all the variables we will be using
         integer, intent(in) :: n_substeps_in, numflux_in, numsol_in, max_age_in, &
@@ -109,8 +123,13 @@ contains
         real(8), intent(out), dimension(0:max_age_in - 1, 0:timeseries_length_in - 1, 0:numsol_in - 1) :: mR_ts
         real(8), intent(out), dimension(0:max_age_in - 1, 0:timeseries_length_in - 1) :: WaterBalance_ts
         real(8), intent(out), dimension(0:max_age_in - 1, 0:timeseries_length_in - 1, 0:numsol_in - 1) :: SoluteBalance_ts
+        character(len = 128) :: tempdebugstring
+        integer :: iT_prev, carry
+        integer :: iT_substep, jt_substep
+        integer :: iq, s, ip, ic
+        real(8) :: one8
 
-        call f_verbose('...Initializing arrays...')
+        !call f_verbose('...Initializing arrays...')
         one8 = 1.0
 
         allocate(J_ts(0:timeseries_length_in - 1))
@@ -249,6 +268,8 @@ contains
         dm_end = 0.
         iT_prev = -1
 
+        norm = 1.0 / n_substeps / n_substeps
+
         ! The list of probabilities in each sas function is a 1-D array.
         ! breakpt_index_list gives the starting index of the probabilities (P) associated
         ! with each flux
@@ -260,20 +281,19 @@ contains
                 breakpt_index_list(ic + 1) = breakpt_index_list(ic) + numbreakpt_list(ic)
             enddo
         enddo
-        !call f_debug('breakpt_index_list', one8 * breakpt_index_list(:))
+        !call f_debug('breakpt_index_list', one8 * breakpt_index_list(:) )
 
         ! modify the number of ages and the timestep by a facotr of n_substeps
-        M = max_age * n_substeps
         N = timeseries_length * n_substeps
         h = dt / n_substeps
 
-        call f_verbose('...Setting initial conditions...')
+        !call f_verbose('...Setting initial conditions...')
         sT_ts(:, 0) = sT_init_ts
         do s = 0, numsol - 1
             mT_ts(:, 0, s) = mT_init_ts(:, s)
         end do
 
-        call f_verbose('...Starting main loop...')
+        !call f_verbose('...Starting main loop...')
         do iT = 0, max_age - 1
 
             ! Start the substep loop
@@ -281,10 +301,10 @@ contains
 
                 iT_s = iT * n_substeps + iT_substep
 
-                call f_debug_blank()
-                call f_debug_blank()
-                call f_debug('Agestep, Substep', (/ iT * one8, iT_substep * one8/))
-                call f_debug_blank()
+                !call f_debug_blank()
+                !call f_debug_blank()
+                !call f_debug('Agestep, Substep', (/ iT * one8, iT_substep * one8/))
+                !call f_debug_blank()
 
                 sT_start = sT_end
                 mT_start = mT_end
@@ -305,9 +325,11 @@ contains
                         STcum_bot_start(jt_s+1) = STcum_bot_start(jt_s+1) + sT_end(c) * h
                     end do
                 end if
-                call f_debug('STcum_top_start  ',STcum_top_start)
-                call f_debug('STcum_bot_start  ',STcum_bot_start)
+                !call f_debug('STcum_top_start  ',STcum_top_start)
+                !call f_debug('STcum_bot_start  ',STcum_bot_start)
 
+
+                !$acc kernels
                 do c = 0, N - 1
                     jt_s = modulo(c + iT_s, N)
                     jt_substep = modulo(jt_s, n_substeps)
@@ -355,7 +377,6 @@ contains
                     ! Aggregate flux data from substep to timestep
 
                     ! Get the timestep-averaged transit time distribution
-                    norm = 1.0 / n_substeps / n_substeps
                     if ((iT<max_age-1).and.(jt_substep<iT_substep)) then
                         carry = 1
                     else
@@ -401,12 +422,13 @@ contains
                         enddo
                     end if
                 enddo
-                call f_debug('sT_end           ', sT_end)
-                call f_debug('sT_ts(iT, :)     ', sT_ts(iT, :))
-                call f_debug('pQ_aver0         ', pQ_aver(0,:))
-                call f_debug('pQ_aver1         ', pQ_aver(1,:))
-                call f_debug('pQ_ts(iT, :, 0)'  , pQ_ts(iT, :, 0))
-                call f_debug('pQ_ts(iT, :, 0)'  , pQ_ts(iT, :, 1))
+                !$acc end kernels
+                !call f_debug('sT_end           ', sT_end)
+                !call f_debug('sT_ts(iT, :)     ', sT_ts(iT, :))
+                !call f_debug('pQ_aver0         ', pQ_aver(0,:))
+                !call f_debug('pQ_aver1         ', pQ_aver(1,:))
+                !call f_debug('pQ_ts(iT, :, 0)'  , pQ_ts(iT, :, 0))
+                !call f_debug('pQ_ts(iT, :, 0)'  , pQ_ts(iT, :, 1))
 
                 iT_prev = iT
 
@@ -442,12 +464,12 @@ contains
             if (mod(iT, 10).eq.0) then
                 write (tempdebugstring, *) '...Done ', (iT), &
                         'of', (timeseries_length)
-                call f_verbose(tempdebugstring)
+                !call f_verbose(tempdebugstring)
             endif
 
         enddo ! End of main loop
 
-        call f_verbose('...Finalizing...')
+        !call f_verbose('...Finalizing...')
 
         ! get the old water fraction
         P_old = 1 - transpose(sum(pQ_ts, DIM=1)) * dt
@@ -529,12 +551,14 @@ contains
         deallocate(dm_start)
         deallocate(dm_temp)
         deallocate(dm_end)
-        call f_verbose('...Finished...')
+        !call f_verbose('...Finished...')
 
     end subroutine RK4
 
     subroutine f_debug_blank()
         ! Prints a blank line
+        implicit none
+        !$acc routine
         if (debug) then
             print *, ''
         endif
@@ -544,6 +568,7 @@ contains
     subroutine f_debug(debugstring, debugdblepr)
         ! Prints debugging information
         implicit none
+        !$acc routine
         character(len = *), intent(in) :: debugstring
         real(8), dimension(:), intent(in) :: debugdblepr
         if (debug) then
@@ -556,6 +581,7 @@ contains
     subroutine f_warning(debugstring)
         ! Prints informative information
         implicit none
+        !$acc routine
         character(len = *), intent(in) :: debugstring
         if (warning) then
             print *, debugstring
@@ -566,6 +592,7 @@ contains
     subroutine f_verbose(debugstring)
         ! Prints informative information
         implicit none
+        !$acc routine
         character(len = *), intent(in) :: debugstring
         if (verbose) then
             print *, debugstring
@@ -575,12 +602,15 @@ contains
 
     subroutine get_SAS(STcum_in, PQcum_out, leftbreakpt_out, jks)
         ! Call the sas function and get the transit time distribution
+        implicit none
+        !$acc routine
         integer, intent(in) :: jks
         real(8), intent(in) :: STcum_in
         real(8), intent(out), dimension(:) :: PQcum_out  ! NOTE this array is 1-indexed!
         integer, intent(out), dimension(:) :: leftbreakpt_out  ! NOTE this array is 1-indexed!
         real(8) :: PQcum_component
         integer :: jts
+        integer :: iq, ic
         if (jks==N) then
             jts = timeseries_length - 1
         else
@@ -606,6 +636,7 @@ contains
     subroutine lookup(xa, ya, x, y, ia, na)
         ! A simple lookup table
         implicit none
+        !$acc routine
         integer, intent(in) :: na
         real(8), intent(in), dimension(0:na - 1) :: xa
         real(8), intent(in), dimension(0:na - 1) :: ya
@@ -631,10 +662,10 @@ contains
                 endif
             enddo
             if (.not. foundit) then
-                call f_warning('I could not find the ST value. This should never happen!!!')
-                call f_debug('xa     ', xa)
-                call f_debug('ya     ', ya)
-                call f_debug('x      ', (/x/))
+                !call f_warning('I could not find the ST value. This should never happen!!!')
+                !call f_debug('xa     ', xa)
+                !call f_debug('ya     ', ya)
+                !call f_debug('x      ', (/x/))
                 y = ya(na - 1)
                 ia = na - 1
             else
@@ -648,6 +679,7 @@ contains
     subroutine update_aver(coeff)
         ! Calculates the fluxes in the given the curent state
         implicit none
+        !$acc routine
         integer, intent(in) :: coeff
         ! Average RK4 estimated change in the state variables
         if (coeff>0) then
@@ -683,8 +715,10 @@ contains
     subroutine get_flux(hr)
         ! Calculates the fluxes in the given the curent state
         implicit none
+        !$acc routine
         real(8), intent(in) :: hr
-        integer iq, s, ip, leftbreakpt
+        integer iq, s, ip, ic, leftbreakpt
+        real(8) :: dS, dP, dSe, dPe, dSs, dPs
         !call f_debug('get_flux', (/hr/))
 
         ! Use the SAS function lookup table to convert age-rank storage to the fraction of discharge of age T at each t
@@ -863,6 +897,8 @@ contains
 
     subroutine new_state(hr)
         ! Calculates the state given the fluxes
+        implicit none
+        !$acc routine
 
         real(8), intent(in) :: hr
 
@@ -879,7 +915,7 @@ contains
         sT_temp(c) = sT_temp(c) - sum(Q_ts(:, jt) * pQ_temp(:, c)) * hr
         mT_temp(:, c) = mT_temp(:, c) - sum(mQ_temp(:, :, c), dim=1) * hr
         if (sT_temp(c)<0) then
-            call f_warning('WARNING: A value of sT is negative. Try increasing the number of substeps')
+            !call f_warning('WARNING: A value of sT is negative. Try increasing the number of substeps')
         end if
 
         ! Calculate new parameter sensitivity
