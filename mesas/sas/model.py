@@ -10,7 +10,11 @@ from collections import OrderedDict
 from copy import deepcopy
 
 import numpy as np
-from solve import solve
+#from solve import solver
+#solveit = solver.rk4
+#from solve import staticmod
+from solve import doit
+solveit = doit
 
 dtype = np.float64
 
@@ -377,12 +381,14 @@ class Model:
         max_age = self.options['max_age']
 
         # call the Fortran code
-        fresult = solve(
-            J, Q.T, SAS_lookup, P_list, weights.T, sT_init, dt,
-            verbose, debug, warning,
-            mT_init, C_J.T, alpha.T, k1.T, C_eq.T, C_old,
-            n_substeps, nC_list, nP_list, numflux, numsol, max_age, timeseries_length, nC_total, nP_total)
-        sT, pQ, WaterBalance, mT, mQ, mR, C_Q, dsTdSj, dmTdSj, dCdSj, SoluteBalance = fresult
+        #fresult = solve(
+            #J, Q.T, SAS_lookup, P_list, weights.T, sT_init, dt,
+            #verbose, debug, warning,
+            #mT_init, C_J.T, alpha.T, k1.T, C_eq.T, C_old,
+            #n_substeps, nC_list, nP_list, numflux, numsol, max_age, timeseries_length, nC_total, nP_total)
+        #sT, pQ, WaterBalance, mT, mQ, mR, C_Q, dsTdSj, dmTdSj, dCdSj, SoluteBalance = fresult
+        solveit()
+        print('Great succcess!')
 
 
 

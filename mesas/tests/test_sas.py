@@ -69,7 +69,11 @@ def steady_run_multiple(N, dt, Q_0, S_0, C_J, iq=None, ic=None, j=None, ST_min=0
     model.run()
     return model
 
-def test_steady_uniform():
+def test_it():
+    from mesas.sas.model import solveit
+    solveit()
+
+def notest_steady_uniform():
 
     n = np.arange(N)
     T_0 = S_0 / Q_0
@@ -163,7 +167,7 @@ def test_steady_uniform():
     #printcheck(rdf, rdf2, 'dmTdSj', 'mT', dmTdSjdisc)
     #printcheck(rdf, rdf2, 'dCdSj', 'C_Q', dCQdSjdisc)
 
-def test_steady_piston_uniform():
+def notest_steady_piston_uniform():
 
     n = np.arange(N)
     T_0 = S_0 / Q_0
@@ -287,7 +291,7 @@ def test_steady_piston_uniform():
     printcheck(rdf, rdfm, 'dsTdSj', 'sT', dsTdSmdisc, j)
     printcheck(rdf, rdfm, 'dCdSj', 'C_Q', dCQdSmdisc, j)
 
-def test_multiple():
+def notest_multiple():
 
     n = np.arange(N)
     T_0 = S_0 / Q_0
