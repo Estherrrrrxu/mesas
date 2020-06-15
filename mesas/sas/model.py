@@ -11,7 +11,6 @@ from copy import deepcopy
 
 import numpy as np
 from solve import solve
-solve = solve.rk4
 
 dtype = np.float64
 
