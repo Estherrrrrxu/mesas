@@ -325,13 +325,68 @@ subroutine solve(J_ts, Q_ts, SAS_lookup, P_list, weights_ts, sT_init_ts, dt, &
                     ds_temp(:, c) = ds_start(:, c)
                     dm_temp(:, :, c) = dm_start(:, :, c)
                 end if
+            end do
 
 
                 ! This is the Runge-Kutta 4th order algorithm
 
-                do rk = 1, 5
-                    hr = h * rk_time(rk)
-                    if (rk>1) then
+            do rk = 1, 5
+                hr = h * rk_time(rk)
+                if (rk>1) then
+                    !$acc kernels loop &
+                    !$acc present(component_index_list(:numflux)) &
+                    !$acc present(rk_coeff(:5)) &
+                    !$acc present(SAS_lookup(:,:)) &
+                    !$acc present(J_ts(:)) &
+                    !$acc present(breakpt_index_list(:)) &
+                    !$acc present(k1_ts(:numsol-1,:)) &
+                    !$acc present(C_J_ts(:numsol-1,:)) &
+                    !$acc present(weights_ts(:,:)) &
+                    !$acc present(alpha_ts(:numflux-1,:numsol-1,:)) &
+                    !$acc present(rk_time(:)) &
+                    !$acc present(Q_ts(:numflux-1,:)) &
+                    !$acc present(P_list(:,:)) &
+                    !$acc present(C_eq_ts(:numsol-1,:)) &
+                    !$acc present(numbreakpt_list(:)) &
+                    !$acc present(jacobian) &
+                    !$acc present(dm_start(:numbreakpt_total-1,:numsol-1,:n-1)) &
+                    !$acc present(ds_start(:numbreakpt_total-1,:n-1)) &
+                    !$acc present(sT_start(:n-1)) &
+                    !$acc present(mT_start(:numsol-1,:n-1)) &
+                    !$acc present(fmR_aver(:numbreakpt_total-1,:numsol-1,:n-1)) &
+                    !$acc present(fm_aver(:,:numsol-1,:n-1)) &
+                    !$acc present(fmQ_aver(:numbreakpt_total-1,:numflux-1,:numsol-1,:n-1)) &
+                    !$acc present(fsQ_aver(:numbreakpt_total-1,:numflux-1,:n-1)) &
+                    !$acc present(mR_aver(:numsol-1,:n-1)) &
+                    !$acc present(pQ_aver(:numflux-1,:n-1)) &
+                    !$acc present(mQ_aver(:numflux-1,:numsol-1,:n-1)) &
+                    !$acc present(fs_aver(:,:n-1)) &
+                    !$acc present(fmQ_temp(:numbreakpt_total-1,:numflux-1,:numsol-1,:n-1)) &
+                    !$acc present(mQ_temp(:numflux-1,:numsol-1,:n-1)) &
+                    !$acc present(fmR_temp(:numbreakpt_total-1,:numsol-1,:n-1)) &
+                    !$acc present(fs_temp(:,:n-1)) &
+                    !$acc present(fm_temp(:,:numsol-1,:n-1)) &
+                    !$acc present(fmQ_temp(:numbreakpt_total-1,:,:,:n-1)) &
+                    !$acc present(fsQ_temp(:numbreakpt_total-1,:numflux-1,:n-1)) &
+                    !$acc present(pQ_temp(:numflux-1,:n-1)) &
+                    !$acc present(mR_temp(:numsol-1,:n-1)) &
+                    !$acc present(dm_temp(:numbreakpt_total-1,:numsol-1,:n-1)) &
+                    !$acc present(mT_temp(:numsol-1,:n-1)) &
+                    !$acc present(sT_temp(:n-1)) &
+                    !$acc present(ds_temp(:numbreakpt_total-1,:n-1)) &
+                    !$acc present(leftbreakpt_top(:,:n-1)) &
+                    !$acc present(leftbreakpt_bot(:,:n-1)) &
+                    !$acc present(STcum_bot(:n-1)) &
+                    !$acc present(PQcum_bot(:numflux-1,:n-1)) &
+                    !$acc present(STcum_top(:n-1)) &
+                    !$acc present(PQcum_top(:numflux-1,:n-1)) &
+                    !$acc present(STcum_bot_start(:)) &
+                    !$acc present(STcum_top_start(:))
+                    do c = 0, N - 1
+                        jt_s = mod(c + iT_s, N)
+                        jt_substep = mod(jt_s, n_substeps)
+                        jt = (jt_s-jt_substep) / n_substeps
+
                         ! ########################## vv NEW STATE vv ##########################
                         ! Calculate the new age-ranked storage
                         sT_temp(c) = sT_start(c) ! Initial value
@@ -358,8 +413,62 @@ subroutine solve(J_ts, Q_ts, SAS_lookup, P_list, weights_ts, sT_init_ts, dt, &
                             dm_temp(:, :, c) = dm_temp(:, :, c) - fm_temp(:, :, c) * hr + fmR_temp(:, :, c) * hr
                         end if
                         ! ########################## ^^ NEW STATE ^^ ##########################
-                    end if
-                    if (rk<5) then
+                    end do
+                end if
+                if (rk<5) then
+                    !$acc kernels loop &
+                    !$acc present(component_index_list(:numflux)) &
+                    !$acc present(rk_coeff(:5)) &
+                    !$acc present(SAS_lookup(:,:)) &
+                    !$acc present(J_ts(:)) &
+                    !$acc present(breakpt_index_list(:)) &
+                    !$acc present(k1_ts(:numsol-1,:)) &
+                    !$acc present(C_J_ts(:numsol-1,:)) &
+                    !$acc present(weights_ts(:,:)) &
+                    !$acc present(alpha_ts(:numflux-1,:numsol-1,:)) &
+                    !$acc present(rk_time(:)) &
+                    !$acc present(Q_ts(:numflux-1,:)) &
+                    !$acc present(P_list(:,:)) &
+                    !$acc present(C_eq_ts(:numsol-1,:)) &
+                    !$acc present(numbreakpt_list(:)) &
+                    !$acc present(jacobian) &
+                    !$acc present(dm_start(:numbreakpt_total-1,:numsol-1,:n-1)) &
+                    !$acc present(ds_start(:numbreakpt_total-1,:n-1)) &
+                    !$acc present(sT_start(:n-1)) &
+                    !$acc present(mT_start(:numsol-1,:n-1)) &
+                    !$acc present(fmR_aver(:numbreakpt_total-1,:numsol-1,:n-1)) &
+                    !$acc present(fm_aver(:,:numsol-1,:n-1)) &
+                    !$acc present(fmQ_aver(:numbreakpt_total-1,:numflux-1,:numsol-1,:n-1)) &
+                    !$acc present(fsQ_aver(:numbreakpt_total-1,:numflux-1,:n-1)) &
+                    !$acc present(mR_aver(:numsol-1,:n-1)) &
+                    !$acc present(pQ_aver(:numflux-1,:n-1)) &
+                    !$acc present(mQ_aver(:numflux-1,:numsol-1,:n-1)) &
+                    !$acc present(fs_aver(:,:n-1)) &
+                    !$acc present(fmQ_temp(:numbreakpt_total-1,:numflux-1,:numsol-1,:n-1)) &
+                    !$acc present(mQ_temp(:numflux-1,:numsol-1,:n-1)) &
+                    !$acc present(fmR_temp(:numbreakpt_total-1,:numsol-1,:n-1)) &
+                    !$acc present(fs_temp(:,:n-1)) &
+                    !$acc present(fm_temp(:,:numsol-1,:n-1)) &
+                    !$acc present(fmQ_temp(:numbreakpt_total-1,:,:,:n-1)) &
+                    !$acc present(fsQ_temp(:numbreakpt_total-1,:numflux-1,:n-1)) &
+                    !$acc present(pQ_temp(:numflux-1,:n-1)) &
+                    !$acc present(mR_temp(:numsol-1,:n-1)) &
+                    !$acc present(dm_temp(:numbreakpt_total-1,:numsol-1,:n-1)) &
+                    !$acc present(mT_temp(:numsol-1,:n-1)) &
+                    !$acc present(sT_temp(:n-1)) &
+                    !$acc present(ds_temp(:numbreakpt_total-1,:n-1)) &
+                    !$acc present(leftbreakpt_top(:,:n-1)) &
+                    !$acc present(leftbreakpt_bot(:,:n-1)) &
+                    !$acc present(STcum_bot(:n-1)) &
+                    !$acc present(PQcum_bot(:numflux-1,:n-1)) &
+                    !$acc present(STcum_top(:n-1)) &
+                    !$acc present(PQcum_top(:numflux-1,:n-1)) &
+                    !$acc present(STcum_bot_start(:)) &
+                    !$acc present(STcum_top_start(:))
+                    do c = 0, N - 1
+                        jt_s = mod(c + iT_s, N)
+                        jt_substep = mod(jt_s, n_substeps)
+                        jt = (jt_s-jt_substep) / n_substeps
 
                         ! ########################## vv GET FLUX vv ##########################
                         ! First get the cumulative age-ranked storage
@@ -452,8 +561,63 @@ subroutine solve(J_ts, Q_ts, SAS_lookup, P_list, weights_ts, sT_init_ts, dt, &
                                 pQ_temp(iq, c) = 0
                             end if
                         end do
+                    end do
 
-                        ! Solute mass flux accounting
+                    ! Solute mass flux accounting
+
+                    !$acc kernels loop &
+                    !$acc present(component_index_list(:numflux)) &
+                    !$acc present(rk_coeff(:5)) &
+                    !$acc present(SAS_lookup(:,:)) &
+                    !$acc present(J_ts(:)) &
+                    !$acc present(breakpt_index_list(:)) &
+                    !$acc present(k1_ts(:numsol-1,:)) &
+                    !$acc present(C_J_ts(:numsol-1,:)) &
+                    !$acc present(weights_ts(:,:)) &
+                    !$acc present(alpha_ts(:numflux-1,:numsol-1,:)) &
+                    !$acc present(rk_time(:)) &
+                    !$acc present(Q_ts(:numflux-1,:)) &
+                    !$acc present(P_list(:,:)) &
+                    !$acc present(C_eq_ts(:numsol-1,:)) &
+                    !$acc present(numbreakpt_list(:)) &
+                    !$acc present(jacobian) &
+                    !$acc present(dm_start(:numbreakpt_total-1,:numsol-1,:n-1)) &
+                    !$acc present(ds_start(:numbreakpt_total-1,:n-1)) &
+                    !$acc present(sT_start(:n-1)) &
+                    !$acc present(mT_start(:numsol-1,:n-1)) &
+                    !$acc present(fmR_aver(:numbreakpt_total-1,:numsol-1,:n-1)) &
+                    !$acc present(fm_aver(:,:numsol-1,:n-1)) &
+                    !$acc present(fmQ_aver(:numbreakpt_total-1,:numflux-1,:numsol-1,:n-1)) &
+                    !$acc present(fsQ_aver(:numbreakpt_total-1,:numflux-1,:n-1)) &
+                    !$acc present(mR_aver(:numsol-1,:n-1)) &
+                    !$acc present(pQ_aver(:numflux-1,:n-1)) &
+                    !$acc present(mQ_aver(:numflux-1,:numsol-1,:n-1)) &
+                    !$acc present(fs_aver(:,:n-1)) &
+                    !$acc present(fmQ_temp(:numbreakpt_total-1,:numflux-1,:numsol-1,:n-1)) &
+                    !$acc present(mQ_temp(:numflux-1,:numsol-1,:n-1)) &
+                    !$acc present(fmR_temp(:numbreakpt_total-1,:numsol-1,:n-1)) &
+                    !$acc present(fs_temp(:,:n-1)) &
+                    !$acc present(fm_temp(:,:numsol-1,:n-1)) &
+                    !$acc present(fmQ_temp(:numbreakpt_total-1,:,:,:n-1)) &
+                    !$acc present(fsQ_temp(:numbreakpt_total-1,:numflux-1,:n-1)) &
+                    !$acc present(pQ_temp(:numflux-1,:n-1)) &
+                    !$acc present(mR_temp(:numsol-1,:n-1)) &
+                    !$acc present(dm_temp(:numbreakpt_total-1,:numsol-1,:n-1)) &
+                    !$acc present(mT_temp(:numsol-1,:n-1)) &
+                    !$acc present(sT_temp(:n-1)) &
+                    !$acc present(ds_temp(:numbreakpt_total-1,:n-1)) &
+                    !$acc present(leftbreakpt_top(:,:n-1)) &
+                    !$acc present(leftbreakpt_bot(:,:n-1)) &
+                    !$acc present(STcum_bot(:n-1)) &
+                    !$acc present(PQcum_bot(:numflux-1,:n-1)) &
+                    !$acc present(STcum_top(:n-1)) &
+                    !$acc present(PQcum_top(:numflux-1,:n-1)) &
+                    !$acc present(STcum_bot_start(:)) &
+                    !$acc present(STcum_top_start(:))
+                    do c = 0, N - 1
+                        jt_s = mod(c + iT_s, N)
+                        jt_substep = mod(jt_s, n_substeps)
+                        jt = (jt_s-jt_substep) / n_substeps
 
                         do iq = 0, numflux - 1
                             do s = 0, numsol - 1
@@ -474,8 +638,62 @@ subroutine solve(J_ts, Q_ts, SAS_lookup, P_list, weights_ts, sT_init_ts, dt, &
                         ! Reaction mass accounting
                         ! If there are first-order reactions, get the total mass rate
                         mR_temp(:, c) = k1_ts(:, jt) * (C_eq_ts(:, jt) * sT_temp(c) - mT_temp(:, c))
+                    enddo
 
-                        if (jacobian) then
+                    if (jacobian) then
+                        !$acc kernels loop &
+                        !$acc present(component_index_list(:numflux)) &
+                        !$acc present(rk_coeff(:5)) &
+                        !$acc present(SAS_lookup(:,:)) &
+                        !$acc present(J_ts(:)) &
+                        !$acc present(breakpt_index_list(:)) &
+                        !$acc present(k1_ts(:numsol-1,:)) &
+                        !$acc present(C_J_ts(:numsol-1,:)) &
+                        !$acc present(weights_ts(:,:)) &
+                        !$acc present(alpha_ts(:numflux-1,:numsol-1,:)) &
+                        !$acc present(rk_time(:)) &
+                        !$acc present(Q_ts(:numflux-1,:)) &
+                        !$acc present(P_list(:,:)) &
+                        !$acc present(C_eq_ts(:numsol-1,:)) &
+                        !$acc present(numbreakpt_list(:)) &
+                        !$acc present(jacobian) &
+                        !$acc present(dm_start(:numbreakpt_total-1,:numsol-1,:n-1)) &
+                        !$acc present(ds_start(:numbreakpt_total-1,:n-1)) &
+                        !$acc present(sT_start(:n-1)) &
+                        !$acc present(mT_start(:numsol-1,:n-1)) &
+                        !$acc present(fmR_aver(:numbreakpt_total-1,:numsol-1,:n-1)) &
+                        !$acc present(fm_aver(:,:numsol-1,:n-1)) &
+                        !$acc present(fmQ_aver(:numbreakpt_total-1,:numflux-1,:numsol-1,:n-1)) &
+                        !$acc present(fsQ_aver(:numbreakpt_total-1,:numflux-1,:n-1)) &
+                        !$acc present(mR_aver(:numsol-1,:n-1)) &
+                        !$acc present(pQ_aver(:numflux-1,:n-1)) &
+                        !$acc present(mQ_aver(:numflux-1,:numsol-1,:n-1)) &
+                        !$acc present(fs_aver(:,:n-1)) &
+                        !$acc present(fmQ_temp(:numbreakpt_total-1,:numflux-1,:numsol-1,:n-1)) &
+                        !$acc present(mQ_temp(:numflux-1,:numsol-1,:n-1)) &
+                        !$acc present(fmR_temp(:numbreakpt_total-1,:numsol-1,:n-1)) &
+                        !$acc present(fs_temp(:,:n-1)) &
+                        !$acc present(fm_temp(:,:numsol-1,:n-1)) &
+                        !$acc present(fmQ_temp(:numbreakpt_total-1,:,:,:n-1)) &
+                        !$acc present(fsQ_temp(:numbreakpt_total-1,:numflux-1,:n-1)) &
+                        !$acc present(pQ_temp(:numflux-1,:n-1)) &
+                        !$acc present(mR_temp(:numsol-1,:n-1)) &
+                        !$acc present(dm_temp(:numbreakpt_total-1,:numsol-1,:n-1)) &
+                        !$acc present(mT_temp(:numsol-1,:n-1)) &
+                        !$acc present(sT_temp(:n-1)) &
+                        !$acc present(ds_temp(:numbreakpt_total-1,:n-1)) &
+                        !$acc present(leftbreakpt_top(:,:n-1)) &
+                        !$acc present(leftbreakpt_bot(:,:n-1)) &
+                        !$acc present(STcum_bot(:n-1)) &
+                        !$acc present(PQcum_bot(:numflux-1,:n-1)) &
+                        !$acc present(STcum_top(:n-1)) &
+                        !$acc present(PQcum_top(:numflux-1,:n-1)) &
+                        !$acc present(STcum_bot_start(:)) &
+                        !$acc present(STcum_top_start(:))
+                        do c = 0, N - 1
+                            jt_s = mod(c + iT_s, N)
+                            jt_substep = mod(jt_s, n_substeps)
+                            jt = (jt_s-jt_substep) / n_substeps
                             fs_temp(:, c) = 0.
                             fsQ_temp(:, :, c) = 0.
                             if (sT_temp( c)>0) then
@@ -590,9 +808,63 @@ subroutine solve(J_ts, Q_ts, SAS_lookup, P_list, weights_ts, sT_init_ts, dt, &
                                     end if
                                 end do
                             end do
-                        end if
-                        ! ########################## ^^ GET FLUX ^^ ##########################
+                        end do
+                    end if
+                    ! ########################## ^^ GET FLUX ^^ ##########################
 
+                    !$acc kernels loop &
+                    !$acc present(component_index_list(:numflux)) &
+                    !$acc present(rk_coeff(:5)) &
+                    !$acc present(SAS_lookup(:,:)) &
+                    !$acc present(J_ts(:)) &
+                    !$acc present(breakpt_index_list(:)) &
+                    !$acc present(k1_ts(:numsol-1,:)) &
+                    !$acc present(C_J_ts(:numsol-1,:)) &
+                    !$acc present(weights_ts(:,:)) &
+                    !$acc present(alpha_ts(:numflux-1,:numsol-1,:)) &
+                    !$acc present(rk_time(:)) &
+                    !$acc present(Q_ts(:numflux-1,:)) &
+                    !$acc present(P_list(:,:)) &
+                    !$acc present(C_eq_ts(:numsol-1,:)) &
+                    !$acc present(numbreakpt_list(:)) &
+                    !$acc present(jacobian) &
+                    !$acc present(dm_start(:numbreakpt_total-1,:numsol-1,:n-1)) &
+                    !$acc present(ds_start(:numbreakpt_total-1,:n-1)) &
+                    !$acc present(sT_start(:n-1)) &
+                    !$acc present(mT_start(:numsol-1,:n-1)) &
+                    !$acc present(fmR_aver(:numbreakpt_total-1,:numsol-1,:n-1)) &
+                    !$acc present(fm_aver(:,:numsol-1,:n-1)) &
+                    !$acc present(fmQ_aver(:numbreakpt_total-1,:numflux-1,:numsol-1,:n-1)) &
+                    !$acc present(fsQ_aver(:numbreakpt_total-1,:numflux-1,:n-1)) &
+                    !$acc present(mR_aver(:numsol-1,:n-1)) &
+                    !$acc present(pQ_aver(:numflux-1,:n-1)) &
+                    !$acc present(mQ_aver(:numflux-1,:numsol-1,:n-1)) &
+                    !$acc present(fs_aver(:,:n-1)) &
+                    !$acc present(fmQ_temp(:numbreakpt_total-1,:numflux-1,:numsol-1,:n-1)) &
+                    !$acc present(mQ_temp(:numflux-1,:numsol-1,:n-1)) &
+                    !$acc present(fmR_temp(:numbreakpt_total-1,:numsol-1,:n-1)) &
+                    !$acc present(fs_temp(:,:n-1)) &
+                    !$acc present(fm_temp(:,:numsol-1,:n-1)) &
+                    !$acc present(fmQ_temp(:numbreakpt_total-1,:,:,:n-1)) &
+                    !$acc present(fsQ_temp(:numbreakpt_total-1,:numflux-1,:n-1)) &
+                    !$acc present(pQ_temp(:numflux-1,:n-1)) &
+                    !$acc present(mR_temp(:numsol-1,:n-1)) &
+                    !$acc present(dm_temp(:numbreakpt_total-1,:numsol-1,:n-1)) &
+                    !$acc present(mT_temp(:numsol-1,:n-1)) &
+                    !$acc present(sT_temp(:n-1)) &
+                    !$acc present(ds_temp(:numbreakpt_total-1,:n-1)) &
+                    !$acc present(leftbreakpt_top(:,:n-1)) &
+                    !$acc present(leftbreakpt_bot(:,:n-1)) &
+                    !$acc present(STcum_bot(:n-1)) &
+                    !$acc present(PQcum_bot(:numflux-1,:n-1)) &
+                    !$acc present(STcum_top(:n-1)) &
+                    !$acc present(PQcum_top(:numflux-1,:n-1)) &
+                    !$acc present(STcum_bot_start(:)) &
+                    !$acc present(STcum_top_start(:))
+                    do c = 0, N - 1
+                        jt_s = mod(c + iT_s, N)
+                        jt_substep = mod(jt_s, n_substeps)
+                        jt = (jt_s-jt_substep) / n_substeps
                         pQ_aver(:, c)  = pQ_aver(:, c)  + rk_coeff(rk) * pQ_temp(:, c) / 6.
                         mQ_aver(:, :, c)  = mQ_aver(:, :, c)  + rk_coeff(rk) * mQ_temp(:, :, c) / 6.
                         mR_aver(:, c)  = mR_aver(:, c)  + rk_coeff(rk) * mR_temp(:, c) / 6.
@@ -603,9 +875,63 @@ subroutine solve(J_ts, Q_ts, SAS_lookup, P_list, weights_ts, sT_init_ts, dt, &
                             fmQ_aver(:, :, :, c) = fmQ_aver(:, :, :, c) + rk_coeff(rk) * fmQ_temp(:, :, :, c) / 6.
                             fmR_aver(:, :, c) = fmR_aver(:, :, c) + rk_coeff(rk) * fmR_temp(:, :, c) / 6.
                         end if
+                    end do
 
-                    end if
-                    if (rk==4) then
+                end if
+                if (rk==4) then
+                    !$acc kernels loop &
+                    !$acc present(component_index_list(:numflux)) &
+                    !$acc present(rk_coeff(:5)) &
+                    !$acc present(SAS_lookup(:,:)) &
+                    !$acc present(J_ts(:)) &
+                    !$acc present(breakpt_index_list(:)) &
+                    !$acc present(k1_ts(:numsol-1,:)) &
+                    !$acc present(C_J_ts(:numsol-1,:)) &
+                    !$acc present(weights_ts(:,:)) &
+                    !$acc present(alpha_ts(:numflux-1,:numsol-1,:)) &
+                    !$acc present(rk_time(:)) &
+                    !$acc present(Q_ts(:numflux-1,:)) &
+                    !$acc present(P_list(:,:)) &
+                    !$acc present(C_eq_ts(:numsol-1,:)) &
+                    !$acc present(numbreakpt_list(:)) &
+                    !$acc present(jacobian) &
+                    !$acc present(dm_start(:numbreakpt_total-1,:numsol-1,:n-1)) &
+                    !$acc present(ds_start(:numbreakpt_total-1,:n-1)) &
+                    !$acc present(sT_start(:n-1)) &
+                    !$acc present(mT_start(:numsol-1,:n-1)) &
+                    !$acc present(fmR_aver(:numbreakpt_total-1,:numsol-1,:n-1)) &
+                    !$acc present(fm_aver(:,:numsol-1,:n-1)) &
+                    !$acc present(fmQ_aver(:numbreakpt_total-1,:numflux-1,:numsol-1,:n-1)) &
+                    !$acc present(fsQ_aver(:numbreakpt_total-1,:numflux-1,:n-1)) &
+                    !$acc present(mR_aver(:numsol-1,:n-1)) &
+                    !$acc present(pQ_aver(:numflux-1,:n-1)) &
+                    !$acc present(mQ_aver(:numflux-1,:numsol-1,:n-1)) &
+                    !$acc present(fs_aver(:,:n-1)) &
+                    !$acc present(fmQ_temp(:numbreakpt_total-1,:numflux-1,:numsol-1,:n-1)) &
+                    !$acc present(mQ_temp(:numflux-1,:numsol-1,:n-1)) &
+                    !$acc present(fmR_temp(:numbreakpt_total-1,:numsol-1,:n-1)) &
+                    !$acc present(fs_temp(:,:n-1)) &
+                    !$acc present(fm_temp(:,:numsol-1,:n-1)) &
+                    !$acc present(fmQ_temp(:numbreakpt_total-1,:,:,:n-1)) &
+                    !$acc present(fsQ_temp(:numbreakpt_total-1,:numflux-1,:n-1)) &
+                    !$acc present(pQ_temp(:numflux-1,:n-1)) &
+                    !$acc present(mR_temp(:numsol-1,:n-1)) &
+                    !$acc present(dm_temp(:numbreakpt_total-1,:numsol-1,:n-1)) &
+                    !$acc present(mT_temp(:numsol-1,:n-1)) &
+                    !$acc present(sT_temp(:n-1)) &
+                    !$acc present(ds_temp(:numbreakpt_total-1,:n-1)) &
+                    !$acc present(leftbreakpt_top(:,:n-1)) &
+                    !$acc present(leftbreakpt_bot(:,:n-1)) &
+                    !$acc present(STcum_bot(:n-1)) &
+                    !$acc present(PQcum_bot(:numflux-1,:n-1)) &
+                    !$acc present(STcum_top(:n-1)) &
+                    !$acc present(PQcum_top(:numflux-1,:n-1)) &
+                    !$acc present(STcum_bot_start(:)) &
+                    !$acc present(STcum_top_start(:))
+                    do c = 0, N - 1
+                        jt_s = mod(c + iT_s, N)
+                        jt_substep = mod(jt_s, n_substeps)
+                        jt = (jt_s-jt_substep) / n_substeps
                         ! zero out the probabilities if there is no outflux this timestep
                         do iq = 0, numflux - 1
                             if (Q_ts(iq, jt)==0) then
@@ -623,10 +949,64 @@ subroutine solve(J_ts, Q_ts, SAS_lookup, P_list, weights_ts, sT_init_ts, dt, &
                             fmQ_temp(:, :, :, c) = fmQ_aver(:, :, :, c)
                             fmR_temp(:, :, c) = fmR_aver(:, :, c)
                         end if
-                    end if
-                end do
+                    end do
+                end if
+            end do
 
-                ! Update the state with the new estimates
+            ! Update the state with the new estimates
+            !$acc kernels loop &
+            !$acc present(component_index_list(:numflux)) &
+            !$acc present(rk_coeff(:5)) &
+            !$acc present(SAS_lookup(:,:)) &
+            !$acc present(J_ts(:)) &
+            !$acc present(breakpt_index_list(:)) &
+            !$acc present(k1_ts(:numsol-1,:)) &
+            !$acc present(C_J_ts(:numsol-1,:)) &
+            !$acc present(weights_ts(:,:)) &
+            !$acc present(alpha_ts(:numflux-1,:numsol-1,:)) &
+            !$acc present(rk_time(:)) &
+            !$acc present(Q_ts(:numflux-1,:)) &
+            !$acc present(P_list(:,:)) &
+            !$acc present(C_eq_ts(:numsol-1,:)) &
+            !$acc present(numbreakpt_list(:)) &
+            !$acc present(jacobian) &
+            !$acc present(dm_start(:numbreakpt_total-1,:numsol-1,:n-1)) &
+            !$acc present(ds_start(:numbreakpt_total-1,:n-1)) &
+            !$acc present(sT_start(:n-1)) &
+            !$acc present(mT_start(:numsol-1,:n-1)) &
+            !$acc present(fmR_aver(:numbreakpt_total-1,:numsol-1,:n-1)) &
+            !$acc present(fm_aver(:,:numsol-1,:n-1)) &
+            !$acc present(fmQ_aver(:numbreakpt_total-1,:numflux-1,:numsol-1,:n-1)) &
+            !$acc present(fsQ_aver(:numbreakpt_total-1,:numflux-1,:n-1)) &
+            !$acc present(mR_aver(:numsol-1,:n-1)) &
+            !$acc present(pQ_aver(:numflux-1,:n-1)) &
+            !$acc present(mQ_aver(:numflux-1,:numsol-1,:n-1)) &
+            !$acc present(fs_aver(:,:n-1)) &
+            !$acc present(fmQ_temp(:numbreakpt_total-1,:numflux-1,:numsol-1,:n-1)) &
+            !$acc present(mQ_temp(:numflux-1,:numsol-1,:n-1)) &
+            !$acc present(fmR_temp(:numbreakpt_total-1,:numsol-1,:n-1)) &
+            !$acc present(fs_temp(:,:n-1)) &
+            !$acc present(fm_temp(:,:numsol-1,:n-1)) &
+            !$acc present(fmQ_temp(:numbreakpt_total-1,:,:,:n-1)) &
+            !$acc present(fsQ_temp(:numbreakpt_total-1,:numflux-1,:n-1)) &
+            !$acc present(pQ_temp(:numflux-1,:n-1)) &
+            !$acc present(mR_temp(:numsol-1,:n-1)) &
+            !$acc present(dm_temp(:numbreakpt_total-1,:numsol-1,:n-1)) &
+            !$acc present(mT_temp(:numsol-1,:n-1)) &
+            !$acc present(sT_temp(:n-1)) &
+            !$acc present(ds_temp(:numbreakpt_total-1,:n-1)) &
+            !$acc present(leftbreakpt_top(:,:n-1)) &
+            !$acc present(leftbreakpt_bot(:,:n-1)) &
+            !$acc present(STcum_bot(:n-1)) &
+            !$acc present(PQcum_bot(:numflux-1,:n-1)) &
+            !$acc present(STcum_top(:n-1)) &
+            !$acc present(PQcum_top(:numflux-1,:n-1)) &
+            !$acc present(STcum_bot_start(:)) &
+            !$acc present(STcum_top_start(:))
+            do c = 0, N - 1
+                jt_s = mod(c + iT_s, N)
+                jt_substep = mod(jt_s, n_substeps)
+                jt = (jt_s-jt_substep) / n_substeps
                 sT_start(c) = sT_temp(c)
                 mT_start(:, c) = mT_temp(:, c)
                 if (jacobian) then
