@@ -13,8 +13,8 @@ import numpy as np
 #from solve import solver
 #solveit = solver.rk4
 #from solve import staticmod
-from solve import doit
-solveit = doit
+from solve import useit
+solveit = useit.doit
 
 dtype = np.float64
 
