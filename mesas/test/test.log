@@ -1,0 +1,10 @@
+INFO:root:Uniform error = 1.031136651196295e-08
+INFO:root:Exponential error = 4.856920679675308e-07
+INFO:root:Biased old error = 0.0004443229018447117
+INFO:root:Biased young error = -0.0002592753401812695
+INFO:root:Partial bypass error = 8.777443480538865e-05
+INFO:root:Balanced error = -6.03766271618325e-07
+INFO:root:Unsteady Linear reservoir error = 0.003672093531230104
+INFO:root:Part/multiple error = -1.4531365380711207e-08
+WARNING:matplotlib.legend:No artists with labels found to put in legend.  Note that artists whose label start with an underscore are ignored when legend() is called with no argument.
+INFO:root:Reaction error = -0.0032034024897794203

@@ -79,7 +79,7 @@ unsteady_benchmarks = {
 }
 #%%
 def test_steady(makefigure=False):
-#%%
+
     np.random.seed(2)
     timeseries_length = 100
     max_age = timeseries_length
@@ -167,7 +167,7 @@ def test_steady(makefigure=False):
 # %%
 
 def test_unsteady(makefigure=False):
-#%%
+
     np.random.seed(1)
     timeseries_length = 300
     max_age = timeseries_length
@@ -247,7 +247,7 @@ def test_unsteady(makefigure=False):
 # %%
 
 def test_part_multiple(makefigure=False):
-#%%
+
     timeseries_length = 300
     max_age = timeseries_length
     dt = 0.1
@@ -348,7 +348,7 @@ def test_part_multiple(makefigure=False):
 # %%
 
 def test_reaction(makefigure=False):
-#%%
+
     u = 1 # No effect
     v = 1 # No effect
     timeseries_length = 500
