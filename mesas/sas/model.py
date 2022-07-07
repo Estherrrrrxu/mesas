@@ -13,7 +13,6 @@ import json
 
 import numpy as np
 from solve import solvesas as solve
-
 dtype = np.float64
 
 from mesas.sas.specs import SAS_Spec
@@ -67,6 +66,7 @@ class Model:
             'influx': 'J',
             'ST_smallest_segment': 1./100,
             'ST_largest_segment': np.inf,
+            'num_chunk':1, # default number of chunks to chop the timeseries
         }
         self._options = self._default_options
         components_to_learn = kwargs.get('components_to_learn')
@@ -399,15 +399,43 @@ class Model:
         jacobian = self.options['jacobian']
         n_substeps = self.options['n_substeps']
         max_age = self.options['max_age']
+        num_chunk = self.options['num_chunk']
 
         # call the Fortran code
-        fresult = solve(
-            J, Q, SAS_args, P_list, weights,
-            sT_init, dt, verbose, debug, warning, jacobian,
-            mT_init, np.asfortranarray(C_J), np.asfortranarray(alpha), np.asfortranarray(k1),
-            np.asfortranarray(C_eq), C_old,
-            n_substeps, component_type, nC_list, nargs_list, numflux, numsol, max_age, timeseries_length, nC_total, nargs_total)
-        sT, pQ, WaterBalance, mT, mQ, mR, C_Q, dsTdSj, dmTdSj, dCdSj, SoluteBalance = fresult
+        if num_chunk == 1:
+            fresult = solve(
+                J, Q, SAS_args, P_list, weights,
+                sT_init, dt, verbose, debug, warning, jacobian,
+                mT_init, np.asfortranarray(C_J), np.asfortranarray(alpha), np.asfortranarray(k1),
+                np.asfortranarray(C_eq), C_old,
+                n_substeps, component_type, nC_list, nargs_list, numflux, numsol, max_age, timeseries_length, nC_total, nargs_total)
+            sT, pQ, WaterBalance, mT, mQ, mR, C_Q, dsTdSj, dmTdSj, dCdSj, SoluteBalance = fresult
+        else: 
+            import dask.dataframe as dd
+            # partition time series
+            J_d = dd.from_pandas(J, npartitions=num_chunk)
+            Q_d = dd.from_pandas(Q, npartitions=num_chunk)
+            C_J_d = dd.from_pandas(C_J, npartitions=num_chunk)
+            C_Q = np.array([])
+            # loop through all chunks
+            for i in range(num_chunk):
+                fresult = solve(
+                    J_d.partitions[i], Q_d.partitions[i], SAS_args, P_list, weights,
+                    sT_init, dt, verbose, debug, warning, jacobian,
+                    mT_init, np.asfortranarray(C_J_d.partitions[i]), np.asfortranarray(alpha), np.asfortranarray(k1),
+                    np.asfortranarray(C_eq), C_old,
+                    n_substeps, component_type, nC_list, nargs_list, numflux, numsol, max_age, timeseries_length, nC_total, nargs_total)
+                sT, pQ, WaterBalance, mT, mQ, mR, C_Q_d, dsTdSj, dmTdSj, dCdSj, SoluteBalance = fresult
+                # append C_Q chunk to form a complete timeseries
+                C_Q = np.append(C_Q, C_Q_d)
+                # inherit status from the end of last chunk
+                sT_init = self.get_sT(-1)
+                mT_init = self.get_mT(-1)
+
+
+
+
+
 
         if numsol > 0:
             self._result = {'C_Q': C_Q}
@@ -498,3 +526,44 @@ class Model:
                         else:
                             index = np.concatenate((index, this_index), axis=0)
         return np.nonzero(index)[0]
+
+
+    def get_sT(self,date):
+        """
+        Extract the s_T column at the given date/index
+        """
+        try:
+            # Convert it into integer
+            val = int(input)
+            print("Input is an integer index. Number = ", val)
+            sT = self.result["sT"][:,date]
+        except ValueError:
+            try:
+                # Convert it into float
+                val = str(input)
+                print("Input is a float  number. Number = ", val)
+                index = self.data_df.index.get_loc(date)
+                sT = self.result["sT"][:,index]
+            except ValueError:
+                print("Nope! Not a valid input.")
+        return sT
+    def get_mT(self,date):
+        """
+        Extract the m_T columns at the given date/index
+        """
+        try:
+            # Convert it into integer
+            val = int(input)
+            print("Input is an integer index. Number = ", val)
+            mT = self.result["mT"][:,date,0]
+        except ValueError:
+            try:
+                # Convert it into float
+                val = str(input)
+                print("Input is a float  number. Number = ", val)
+                index = self.data_df.index.get_loc(date)
+                mT = self.result["mT"][:,date,0]
+            except ValueError:
+                print("Nope! Not a valid input.")
+        return mT
+
