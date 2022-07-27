@@ -534,19 +534,20 @@ class Model:
         """
         try:
             # Convert it into integer
-            val = int(input)
+            val = int(date)
             print("Input is an integer index. Number = ", val)
             sT = self.result["sT"][:,date]
-        except ValueError:
+        except TypeError:
             try:
                 # Convert it into float
-                val = str(input)
+                val = str(date)
                 print("Input is a float  number. Number = ", val)
                 index = self.data_df.index.get_loc(date)
                 sT = self.result["sT"][:,index]
             except ValueError:
                 print("Nope! Not a valid input.")
         return sT
+        
     def get_mT(self,date):
         """
         Extract the m_T columns at the given date/index
@@ -556,7 +557,7 @@ class Model:
             val = int(input)
             print("Input is an integer index. Number = ", val)
             mT = self.result["mT"][:,date,0]
-        except ValueError:
+        except TypeError:
             try:
                 # Convert it into float
                 val = str(input)

@@ -14,6 +14,11 @@ def test_examples(makeplots=False):
         run_example(eg, makeplots)
 
 def run_example(eg, makeplots=False):
+    '''
+    For interactive testing only
+    import os
+    os.chdir('/Users/esthersida/Documents/Code/mesas')
+    '''
 
     # Create the model
     model = Model(data_df=f'./mesas/examples/{eg}/data.csv',
